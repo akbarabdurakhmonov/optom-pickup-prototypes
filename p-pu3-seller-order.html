@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>P-PU3 Seller: pickup order and handover</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>/* Optom.uz prototype base — colours and components taken from the Figma exports (Seller website, Buyer website, Super Admin Old) */
+:root{
+  --green:#00a028; --green-600:#008a22; --green-50:#e6f6ea; --green-100:#cdeed5;
+  --ink:#1b1c1f; --ink-2:#38383b; --muted:#6b7079; --muted-2:#8b9189; --line:#e7e9ec; --line-2:#d9dce1;
+  --bg:#f3f4f6; --card:#ffffff; --red:#d92d20; --red-50:#fdecec; --amber:#ca8504; --amber-50:#fef7c3;
+  --blue:#0c75ed; --blue-50:#e8f2fe; --violet:#7a5af8; --violet-50:#f1edff;
+  --radius:12px; --radius-sm:8px;
+  --font:"Onest",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:var(--font);font-size:14px;line-height:1.45;color:var(--ink);background:var(--bg)}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--green);text-decoration:none}
+/* ---- prototype harness bar ---- */
+.pbar{position:sticky;top:0;z-index:50;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:8px 16px;background:#14161a;color:#e9ecef;font-size:12.5px}
+.pbar b{color:#fff;font-weight:600}
+.pbar .tag{background:#2a2e35;border-radius:6px;padding:2px 8px;color:#c6cbd2}
+.pbar select{background:#23272e;border:1px solid #3a3f47;border-radius:6px;color:#fff;padding:4px 8px;max-width:420px}
+.pbar .sp{flex:1}
+.pbar button{background:#23272e;border:1px solid #3a3f47;border-radius:6px;color:#fff;padding:4px 10px;cursor:pointer}
+.pbar button.on{background:var(--green);border-color:var(--green)}
+.notes{position:fixed;right:16px;bottom:16px;width:380px;max-height:60vh;overflow:auto;z-index:60;background:#fffef5;border:1px solid #eadf9f;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.18);padding:14px 16px;font-size:12.5px;display:none}
+.notes.show{display:block}
+.notes h4{margin:0 0 6px;font-size:13px}
+.notes ul{margin:4px 0 0 16px;padding:0}
+.notes li{margin:3px 0}
+.notes .src{color:#6b6200;font-size:11.5px;margin-top:8px}
+/* ---- seller / admin shell ---- */
+.shell{display:grid;grid-template-columns:232px 1fr;min-height:calc(100vh - 40px)}
+.side{padding:18px 14px;display:flex;flex-direction:column;gap:2px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:600;font-size:26px;letter-spacing:-.5px;margin:0 6px 22px;color:var(--ink)}
+.logo svg{flex:none}
+.side .grp{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin:14px 10px 6px}
+.nav{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;color:var(--ink-2);cursor:default}
+.nav.on{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.05);color:var(--ink);font-weight:500}
+.nav svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.6;opacity:.8}
+.side .me{margin-top:auto;background:#fff;border-radius:12px;padding:10px;display:flex;gap:10px;align-items:center}
+.ava{width:34px;height:34px;border-radius:50%;background:#d7dbe0;display:grid;place-items:center;font-weight:600;color:#555;flex:none}
+.me small{display:block;color:var(--green);font-size:12px}
+.main{padding:16px 24px 40px 8px;min-width:0}
+.top{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.iconbtn{width:34px;height:34px;border-radius:9px;background:#fff;border:1px solid var(--line);display:grid;place-items:center}
+.crumbs{color:var(--muted);font-size:13px;display:flex;gap:8px;align-items:center}
+.crumbs b{color:var(--ink);font-weight:500}
+.top .sp{flex:1}
+.lang{background:#fff;border:1px solid var(--line);border-radius:9px;padding:6px 12px;font-size:13px}
+.h1{font-size:26px;font-weight:600;margin:6px 0 14px;display:flex;align-items:center;gap:10px}
+/* ---- components ---- */
+.card{background:var(--card);border-radius:var(--radius);padding:20px 22px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.card+.card{margin-top:12px}
+.card h3{margin:0 0 4px;font-size:18px;font-weight:600}
+.sub{color:var(--muted);margin:0}
+.row{display:flex;gap:12px;align-items:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.sec{display:grid;grid-template-columns:240px 1fr;gap:24px;padding:20px 0;border-top:1px solid var(--line)}
+.sec>.lbl{font-weight:600}
+.sec>.lbl .sub{font-weight:400;font-size:13px;margin-top:4px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field label{font-size:13px;font-weight:500}
+.inp{border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;background:#fff;outline:none;width:100%}
+.inp:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--green-50)}
+.inp.err{border-color:var(--red)}
+.inp[disabled]{background:#f6f7f9;color:var(--muted)}
+.err-t{color:var(--red);font-size:12.5px}
+.hint{color:var(--muted);font-size:12.5px}
+.btn{border:1px solid transparent;border-radius:10px;padding:10px 18px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.btn.pri{background:var(--green);color:#fff}
+.btn.pri:hover{background:var(--green-600)}
+.btn.pri[disabled]{background:#9fd8ad;cursor:not-allowed}
+.btn.out{background:#fff;border-color:var(--line-2);color:var(--ink)}
+.btn.soft{background:var(--green-50);color:var(--green)}
+.btn.dan{background:var(--red-50);color:var(--red)}
+.btn.danfill{background:var(--red);color:#fff}
+.btn.link{background:none;padding:6px 4px;color:var(--green)}
+.btn.sm{padding:6px 12px;font-size:13px;border-radius:8px}
+.btn[disabled]{opacity:.55;cursor:not-allowed}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:3px 9px;font-size:12.5px;font-weight:500;border:1px solid transparent}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.pill.g{background:var(--green-50);color:var(--green);border-color:var(--green-100)}
+.pill.v{background:var(--violet-50);color:var(--violet);border-color:#ddd3ff}
+.pill.a{background:#fff6e0;color:#b54708;border-color:#fde7b0}
+.pill.r{background:var(--red-50);color:var(--red);border-color:#f9c9c4}
+.pill.n{background:#f1f2f4;color:var(--ink-2);border-color:var(--line)}
+.pill.b{background:var(--blue-50);color:var(--blue);border-color:#c9e0fd}
+.alert{border-radius:12px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;border-left:4px solid}
+.alert .ic{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px;flex:none}
+.alert.w{background:var(--amber-50);border-color:var(--amber)} .alert.w .ic{background:var(--amber)}
+.alert.e{background:var(--red-50);border-color:var(--red)} .alert.e .ic{background:var(--red)}
+.alert.i{background:var(--blue-50);border-color:var(--blue)} .alert.i .ic{background:var(--blue)}
+.alert.s{background:var(--green-50);border-color:var(--green)} .alert.s .ic{background:var(--green)}
+.alert b{display:block;margin-bottom:2px}
+.toggle{position:relative;width:40px;height:22px;border-radius:12px;background:#d0d4da;border:none;cursor:pointer;flex:none;transition:.15s}
+.toggle::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.15s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.toggle.on{background:var(--green)}
+.toggle.on::after{left:21px}
+.toggle[disabled]{opacity:.45;cursor:not-allowed}
+.chk{display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin:8px 0}
+.chk input{width:18px;height:18px;accent-color:var(--green);margin-top:2px;flex:none}
+table.t{width:100%;border-collapse:collapse}
+table.t th{background:#f6f7f9;text-align:left;font-size:12.5px;font-weight:500;color:var(--muted);padding:10px 12px}
+table.t td{border-top:1px solid var(--line);padding:12px;vertical-align:middle}
+.kv{display:flex;gap:10px;padding:12px 0;border-top:1px solid var(--line);align-items:flex-start}
+.kv:first-of-type{border-top:none}
+.kv .k{color:var(--muted)}
+.kv svg{width:20px;height:20px;stroke:var(--muted);fill:none;stroke-width:1.6;flex:none;margin-top:1px}
+.modal-bg{position:fixed;inset:0;background:rgba(16,18,22,.45);display:grid;place-items:center;z-index:40;padding:20px}
+.modal{background:#fff;border-radius:16px;width:min(560px,100%);max-height:90vh;overflow:auto;padding:22px 24px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.modal h3{margin:0 0 6px;font-size:19px}
+.modal .acts{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1b1c1f;color:#fff;border-radius:10px;padding:10px 16px;z-index:70;box-shadow:0 10px 30px rgba(0,0,0,.25);font-size:13.5px}
+.digits{display:flex;gap:6px;align-items:flex-end}
+.digit{background:#eceef1;border-radius:10px;width:42px;height:52px;display:grid;place-items:center;font-size:24px;font-weight:600}
+.dsep{font-size:24px;font-weight:600;padding:0 4px 12px}
+.ycard{border:1.5px solid var(--line-2);border-radius:12px;padding:12px 14px;display:flex;gap:12px;align-items:center;cursor:pointer;background:#fff}
+.ycard.on{border-color:var(--green);background:var(--green-50)}
+.ycard .r{width:18px;height:18px;border-radius:50%;border:2px solid var(--line-2);flex:none}
+.ycard.on .r{border:5px solid var(--green)}
+.ycard[aria-disabled=true]{opacity:.5;cursor:not-allowed}
+.yglogo{font-weight:700;letter-spacing:-.3px}
+.yglogo i{font-style:italic;font-weight:800}
+.code-big{font-size:30px;letter-spacing:6px;font-weight:700;background:#f6f7f9;border-radius:10px;padding:8px 14px;display:inline-block}
+.steps{display:flex;justify-content:space-between;position:relative;margin:6px 0 4px}
+.steps::before{content:"";position:absolute;left:20px;right:20px;top:17px;height:2px;background:var(--line)}
+.step{position:relative;text-align:center;flex:1;color:var(--muted);font-size:13px}
+.step .dot{width:36px;height:36px;border-radius:10px;margin:0 auto 6px;background:#fff;border:1.5px solid var(--line-2);display:grid;place-items:center}
+.step.on{color:var(--green);font-weight:500}
+.step.on .dot{background:var(--green-50);border-color:var(--green)}
+.timeline .it{display:flex;gap:12px;padding:8px 0}
+.timeline .it .d{width:30px;height:30px;border-radius:50%;background:#f1f2f4;display:grid;place-items:center;flex:none;font-size:13px}
+.timeline .it small{display:block;color:var(--muted)}
+.muted{color:var(--muted)}
+.small{font-size:12.5px}
+.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mb0{margin-bottom:0}
+.spin{width:16px;height:16px;border:2px solid #c8ead1;border-top-color:var(--green);border-radius:50%;animation:sp 0.8s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.ann{outline:2px dashed #f0b400;outline-offset:3px;border-radius:12px}
+
+:root{--blue:#0c75ed;--ab:#eef5f7}
+body{background:var(--ab)}
+.ash{display:grid;grid-template-columns:232px 1fr;min-height:calc(100vh - 44px)}
+.aside{background:#fff;padding:22px 16px}
+.aside .logo{font-size:27px;margin:0 0 28px 12px}
+.anav{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;font-weight:500;color:#1b1c1f;cursor:default;margin-bottom:4px}
+.anav svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6}
+.anav.on{background:var(--blue);color:#fff}
+.anav .ch{margin-left:auto;font-size:11px;opacity:.6}
+.asub{padding:8px 14px 8px 48px;border-radius:8px;color:#4b5563;font-size:14px;margin-bottom:2px;cursor:pointer}
+.asub.on{background:#e8f1fd;color:var(--blue);font-weight:500}
+.atop{display:flex;justify-content:flex-end;gap:12px;align-items:center;padding:16px 28px;background:#fff}
+.abox{border:1px solid var(--line);border-radius:10px;padding:8px 12px;display:flex;gap:8px;align-items:center;background:#fff}
+.abox select{border:none;font:inherit;background:transparent;font-weight:500;outline:none}
+.apanel{background:#fff;border-radius:14px;margin:24px 28px;padding:24px 26px}
+.apanel h1{font-size:24px;margin:0 0 18px;font-weight:600;display:flex;align-items:center;gap:12px}
+.apanel h1 .btn{font-size:14px}
+.back{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#555;cursor:pointer}
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.tab{padding:10px 14px;cursor:pointer;color:var(--muted);font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.on{color:var(--ink);border-bottom-color:var(--green)}
+.tab .cnt{background:#fde8e7;color:var(--red);border-radius:10px;padding:1px 7px;font-size:12px;margin-left:6px}
+.flt{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.flt .s{display:flex;flex:1;min-width:260px;border:1px solid var(--green);border-radius:10px;overflow:hidden}
+.flt .s input{flex:1;border:none;padding:9px 12px;outline:none;font:inherit}
+.flt .s button{background:var(--green);color:#fff;border:none;padding:0 18px;font-weight:600;font:inherit}
+.gsel{background:#f2f3f5;border:none;border-radius:10px;padding:9px 12px;font:inherit;min-width:190px}
+.chip{display:inline-block;border-radius:5px;padding:2px 8px;font-size:12px;color:#fff;font-weight:500;white-space:nowrap}
+.c-blue{background:#1d5fd1}.c-or{background:#f0a020}.c-pur{background:#7a29e0}.c-cy{background:#16a3d9}.c-gr{background:#1fa83c}.c-red{background:#d92d20}.c-gray{background:#5f6368}
+.go{width:30px;height:30px;border-radius:50%;background:#e6f6ea;color:var(--green);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-weight:700}
+.gin{background:#f2f3f5;border-radius:10px;padding:10px 12px;color:#4b5563;min-height:40px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.att{border:1px solid var(--line);border-radius:12px;margin-top:12px;overflow:hidden}
+.att .hd{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#fafbfc;border-bottom:1px solid var(--line)}
+.att .bd{padding:14px 16px}
+.prices{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}
+.pr{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.pr small{display:block;color:var(--muted);font-size:12px}
+.pr b{font-size:17px;font-weight:600}
+.pr.hl{border-color:#f5c26b;background:#fffaf0}
+.dl{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 18px;font-size:13.5px}
+.dl div span{color:var(--muted)}
+.log{background:#0f1720;color:#d6e2ee;border-radius:10px;padding:12px;font:12px/1.5 ui-monospace,Menlo,monospace;max-height:340px;overflow:auto;white-space:pre-wrap}
+.log .m{color:#7dd3fc}.log .ok{color:#86efac}.log .bad{color:#fca5a5}
+.swrow{display:flex;align-items:flex-start;gap:16px;padding:16px 0;border-bottom:1px solid var(--line)}
+.swrow .tx{flex:1}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:12.5px}
+.ro-note{font-size:12.5px;color:var(--muted);background:#f6f7f9;border-radius:8px;padding:6px 10px;display:inline-block}
+.radio-l{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:8px;cursor:pointer}
+.radio-l.on{border-color:var(--green);background:var(--green-50)}
+textarea.inp{min-height:76px;resize:vertical}
+
+.og{display:grid;grid-template-columns:1fr 330px;gap:12px;align-items:start}
+.prod{display:flex;align-items:center;gap:12px}
+.thumb{width:40px;height:40px;border-radius:8px;background:linear-gradient(135deg,#e8d8d8,#c9b3b3)}
+.price-line{background:#f6f7f9;border-radius:10px;padding:10px 12px;margin-top:12px;font-size:13.5px}
+.price-line b{font-weight:600}
+.preset{border:1.5px solid var(--line-2);border-radius:10px;padding:10px 12px;cursor:pointer;display:flex;gap:10px;align-items:center}
+.preset.on{border-color:var(--green);background:var(--green-50)}
+.preset .r{width:16px;height:16px;border-radius:50%;border:2px solid var(--line-2);flex:none}
+.preset.on .r{border:5px solid var(--green)}
+.presets{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.courier{display:flex;gap:14px;align-items:center;background:#f6f7f9;border-radius:12px;padding:12px 14px}
+.cnt{font-variant-numeric:tabular-nums;font-weight:600}
+
+.buyer{background:#fff;min-height:100vh}
+.strip{background:#1b1c1f;color:#e9ecef;font-size:13px;display:flex;justify-content:space-between;padding:10px 7%}
+.strip span+span{margin-left:28px}
+.bh{display:flex;align-items:center;gap:18px;padding:14px 7%;border-bottom:1px solid var(--line)}
+.bh .logo{margin:0;font-size:30px}
+.srch{flex:1;display:flex;border:2px solid var(--green);border-radius:10px;overflow:hidden}
+.srch input{flex:1;border:none;padding:9px 12px;outline:none}
+.srch button{background:var(--green);color:#fff;border:none;padding:0 20px;font-weight:600}
+.wrapb{padding:24px 7% 60px}
+.cg{display:grid;grid-template-columns:1fr 330px;gap:40px;align-items:start}
+.blk{margin-bottom:26px}
+.blk h2{font-size:19px;margin:0 0 4px;font-weight:600}
+.box{border:1px solid var(--line);border-radius:14px;padding:4px 16px}
+.opt{display:flex;gap:12px;align-items:center;padding:14px 0}
+.opt+.opt{border-top:1px solid var(--line)}
+.radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--line-2);flex:none}
+.radio.on{border:5px solid var(--green)}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.tile{border:1px solid var(--line-2);border-radius:12px;padding:14px;height:84px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;background:#fff}
+.tile.on{border-color:var(--green);background:var(--green-50)}
+.tile .lg{font-size:17px}
+.sumc{border-radius:16px;box-shadow:0 2px 12px rgba(16,24,40,.08);padding:20px 22px}
+.sumc .ln{display:flex;justify-content:space-between;margin:7px 0;color:var(--muted)}
+.sumc .ln b{color:var(--ink);font-weight:600}
+.sumc .tot{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:14px;margin-top:12px;font-size:18px;font-weight:600}
+.big{width:100%;justify-content:center;padding:15px;font-size:16px;border-radius:12px;margin-top:16px}
+.ygopts{display:grid;gap:8px;margin-top:12px}
+.valid{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);margin-top:10px}
+.demo{background:#fff3c4;border:1px dashed #d9b400;color:#6b5600;border-radius:6px;padding:2px 8px;font-size:11.5px;cursor:pointer}
+.adr{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.oc{display:grid;grid-template-columns:1fr 330px;gap:40px;align-items:start}
+.track{border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-top:14px}
+/* ---- seller-delivery additions ---- */
+.phonewrap{display:flex;justify-content:center;padding:24px 0 40px}
+.phone{width:390px;min-height:780px;border:11px solid #15171a;border-radius:44px;background:#f3f4f6;overflow:hidden;position:relative;box-shadow:0 20px 50px rgba(0,0,0,.18)}
+.phone .sb{height:34px;display:flex;justify-content:space-between;align-items:center;padding:0 22px;font-size:13px;font-weight:600;background:#fff}
+.phone .ah{background:#fff;padding:10px 16px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line)}
+.phone .ah b{font-size:17px}
+.phone .pc{padding:12px}
+.phone .card{padding:14px 14px;border-radius:14px}
+.phone .btn{padding:11px 14px}
+.phone .tabbar{position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:8px 0 14px;font-size:11px;color:var(--muted)}
+.phone .tabbar .on{color:var(--green);font-weight:600}
+.phone .sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:20px 20px 0 0;padding:18px 16px 26px;box-shadow:0 -10px 30px rgba(0,0,0,.15);z-index:5}
+.cityrow{display:grid;grid-template-columns:1fr 200px 34px;gap:8px;align-items:center;margin-top:8px}
+.brblock{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:10px}
+.brblock.on{border-color:var(--green-100);background:#fbfefb}
+.x{width:34px;height:38px;border-radius:9px;border:1px solid var(--line-2);background:#fff;cursor:pointer;color:var(--muted)}
+.counter{float:right;color:var(--muted);font-size:12px}
+.sdcard{border:1.5px solid var(--line-2);border-radius:12px;padding:14px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;background:#fff;margin-top:12px}
+.sdcard.on{border-color:var(--green);background:var(--green-50)}
+.sdcard.off{background:#f6f7f9;cursor:not-allowed;color:var(--muted)}
+.sdcard .r{width:18px;height:18px;border-radius:50%;border:2px solid var(--line-2);flex:none;margin-top:2px}
+.sdcard.on .r{border:5px solid var(--green)}
+.sdcard .why{color:var(--red);font-size:13px;margin-top:4px}
+.info{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:#eceef1;color:var(--ink-2);font-size:11px;font-weight:700;cursor:pointer;margin-left:6px;vertical-align:middle}
+.tip{background:#1b1c1f;color:#fff;border-radius:10px;padding:10px 12px;font-size:12.5px;margin-top:8px;max-width:420px}
+.codebox{display:flex;gap:8px;justify-content:center;margin:14px 0}
+.codebox input{width:52px;height:60px;text-align:center;font-size:26px;font-weight:600;border:1.5px solid var(--line-2);border-radius:12px;outline:none}
+.codebox input:focus{border-color:var(--green)}
+.overdue{color:var(--red);font-weight:600}
+.dflt{border:1px solid var(--line);border-radius:14px;padding:16px;background:#fff}
+.dflt h4{margin:14px 0 8px;font-size:15px}
+.dflt h4:first-child{margin-top:0}
+.fopt{display:flex;align-items:center;gap:10px;padding:6px 0;cursor:pointer}
+.fopt .radio{width:18px;height:18px}
+.chipf{display:inline-block;border:1px solid var(--line);border-radius:18px;padding:5px 12px;margin:0 6px 6px 0;font-size:13px;background:#f6f7f9}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.pcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px}
+.pcard .img{height:120px;border-radius:10px;background:linear-gradient(135deg,#eef0ec,#d9dfd6);margin-bottom:8px}
+.pcard .pr{font-weight:700;font-size:16px}
+.ptag{display:inline-block;font-size:11.5px;border-radius:6px;padding:2px 7px;background:#f1f2f4;color:var(--ink-2);margin-top:6px}
+.empty{text-align:center;color:var(--muted);padding:50px 0}
+.addrpick{position:fixed;inset:0;background:rgba(16,18,22,.45);display:grid;place-items:center;z-index:45}
+.reasons label{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:8px;cursor:pointer}
+.reasons label.on{border-color:var(--green);background:var(--green-50)}
+.notif{background:#fff;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.15);padding:12px 14px;display:flex;gap:10px;max-width:360px}
+.notif .ic2{width:36px;height:36px;border-radius:10px;background:var(--green);color:#fff;display:grid;place-items:center;font-weight:700;flex:none}
+/* ---- pickup additions ---- */
+.qr{display:block;background:#fff;padding:10px;border-radius:12px;border:1px solid var(--line)}
+.qrwrap{display:flex;gap:22px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.hcode{font-size:34px;font-weight:700;letter-spacing:6px;font-variant-numeric:tabular-nums}
+.brcard{border:1.5px solid var(--green);background:var(--green-50);border-radius:14px;padding:14px 16px;margin-top:12px}
+.brcard .nm{font-weight:600;font-size:16px}
+.badge{display:inline-block;font-size:12px;border-radius:12px;padding:2px 9px;margin-left:8px;vertical-align:middle;background:#e7f6ea;color:#0c7a2a;font-weight:600}
+.badge.n{background:#eef1f6;color:#3b4a63}
+.hrs{display:grid;grid-template-columns:110px 120px 1fr;gap:6px 12px;align-items:center;margin-top:8px}
+.hrs .d{font-weight:500}
+.hrs select{max-width:110px}
+.hrow-err{grid-column:1/-1;color:var(--red);font-size:12.5px;margin:-2px 0 4px}
+.blist .bl{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:12px 4px;border-bottom:1px solid var(--line);cursor:pointer}
+.blist .bl:hover{background:#fafbfa}
+.blist .bl.dis{cursor:not-allowed;color:var(--muted)}
+.blist .bl .why{color:var(--red);font-size:12.5px}
+.blist .bl.sel{background:var(--green-50)}
+.ptabs{display:flex;background:#f1f2f4;border-radius:10px;padding:3px;gap:3px;margin:10px 0}
+.ptabs span{flex:1;text-align:center;padding:7px;border-radius:8px;cursor:pointer;font-weight:500}
+.ptabs span.on{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.map{position:relative;height:360px;border-radius:12px;overflow:hidden;background:#eef2e8;background-image:linear-gradient(90deg,rgba(255,255,255,.9) 6px,transparent 6px),linear-gradient(rgba(255,255,255,.9) 6px,transparent 6px),linear-gradient(35deg,transparent 48%,rgba(255,255,255,.95) 48%,rgba(255,255,255,.95) 52%,transparent 52%);background-size:90px 90px,90px 90px,100% 100%}
+.map .river{position:absolute;left:-10%;top:58%;width:120%;height:22px;background:#cfe3f5;transform:rotate(-8deg)}
+.map .pinm{position:absolute;transform:translate(-50%,-100%);cursor:pointer;text-align:center}
+.map .pinm svg{width:34px;height:34px;fill:var(--green);stroke:#fff;stroke-width:1.5}
+.map .pinm.dis svg{fill:#a9adb3}
+.map .pinm.sel svg{fill:#0a6b22}
+.map .pinm small{display:block;background:#fff;border-radius:6px;padding:1px 6px;font-size:11px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.map .me{position:absolute;width:16px;height:16px;border-radius:50%;background:#2f6fde;border:3px solid #fff;box-shadow:0 0 0 6px rgba(47,111,222,.2);transform:translate(-50%,-50%)}
+.map .mcard{position:absolute;left:12px;right:12px;bottom:12px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+.scan{background:#111;border-radius:16px;height:420px;position:relative;display:grid;place-items:center;overflow:hidden}
+.scan .vf{width:220px;height:220px;border:3px solid rgba(255,255,255,.85);border-radius:18px;box-shadow:0 0 0 2000px rgba(0,0,0,.45)}
+.scan .lbl{position:absolute;top:18px;color:#fff;font-size:13px}
+.demo-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.demo-acts button{font-size:12px;border:1px dashed #b8bdc4;background:#fbfbfc;border-radius:8px;padding:6px 9px;cursor:pointer;color:#555b63}
+.sumbox{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:10px;background:#fafbfc}
+.lock{filter:grayscale(1);opacity:.6;pointer-events:none}
+.lockscreen{background:linear-gradient(160deg,#2b3a55,#5d4b6e);min-height:700px;padding:30px 14px 20px;color:#fff}
+.lockscreen .clock{text-align:center;font-size:62px;font-weight:300;margin:10px 0 2px}
+.lockscreen .date{text-align:center;font-size:15px;opacity:.9;margin-bottom:22px}
+.push{background:rgba(255,255,255,.92);color:#1b1c1f;border-radius:16px;padding:10px 12px;margin-bottom:8px;display:flex;gap:10px}
+.push .ap{width:30px;height:30px;border-radius:8px;background:var(--green);color:#fff;display:grid;place-items:center;font-weight:800;font-size:13px;flex:none}
+.push .tt{font-weight:600;font-size:13.5px}
+.push .tx{font-size:13px;line-height:1.35}
+.push .meta{font-size:11px;color:#6b7178;display:flex;justify-content:space-between}
+.push .acts2{display:flex;gap:6px;margin-top:6px}
+.push .acts2 span{background:#eef0f2;border-radius:8px;padding:4px 8px;font-size:12px;font-weight:500}
+.nlist{position:absolute;right:16px;top:58px;width:400px;background:#fff;border-radius:14px;box-shadow:0 16px 40px rgba(0,0,0,.18);z-index:20;overflow:hidden}
+.nlist .hd{display:flex;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);font-weight:600}
+.nlist .it{display:flex;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.nlist .it.unread{background:#f3fbf5}
+.nlist .it .dt{width:8px;height:8px;border-radius:50%;background:var(--green);margin-top:6px;flex:none}
+.nlist .it.read .dt{background:transparent}
+.bellc{position:relative}
+.bellc .cnt2{position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;border-radius:9px;font-size:10.5px;padding:0 5px;font-weight:700}
+.sms{background:#fff;min-height:700px}
+.sms .hd{padding:10px 14px;border-bottom:1px solid var(--line);text-align:center;font-weight:600}
+.sms .bub{background:#e9e9eb;border-radius:18px;padding:9px 13px;margin:10px 60px 4px 12px;font-size:14.5px;line-height:1.35}
+.sms .tm{font-size:11px;color:#8b9189;margin:0 12px}
+.lenok{color:#0c7a2a;font-weight:600}.lenbad{color:var(--red);font-weight:700}
+.langsw span{display:inline-block;border:1px solid var(--line-2);border-radius:8px;padding:4px 10px;margin-right:6px;cursor:pointer}
+.langsw span.on{background:var(--green);border-color:var(--green);color:#fff}
+.alog td{font-size:13px}
+</style></head><body>
+<div id="app"></div><p style="text-align:center;color:#8b9189;font-size:11.5px;margin:18px 0 28px">Optom.uz · clickable prototype for the pickup user stories (epic US-BF-6.3) · requirements: Pickup PRD v1.1 · example data only. Where a prototype differs from the acceptance criteria in Confluence, the acceptance criteria win.</p>
+<script>// Prototype harness: scenario picker, notes panel, toasts, icons, seller shell
+const $ = (s, r = document) => r.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const som = n => Math.round(n).toLocaleString("ru-RU").replace(/,/g, " ") + " сум";
+const ICON = {
+  chart: '<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+  box: '<svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg>',
+  list: '<svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
+  chat: '<svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg>',
+  users: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5M16 11a3 3 0 1 0 0-6M21 20c0-2-1.5-4-4-4.6"/></svg>',
+  store: '<svg viewBox="0 0 24 24"><path d="M3 9l2-5h14l2 5M4 9v11h16V9M3 9h18M9 20v-6h6v6"/></svg>',
+  gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>',
+  spark: '<svg viewBox="0 0 24 24"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></svg>',
+  truck: '<svg viewBox="0 0 24 24"><path d="M2 6h12v10H2zM14 10h4l3 3v3h-7"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>',
+  pin: '<svg viewBox="0 0 24 24"><path d="M12 22s7-7 7-12a7 7 0 1 0-14 0c0 5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+  phone: '<svg viewBox="0 0 24 24"><path d="M5 3h4l2 5-3 2a12 12 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2A18 18 0 0 1 3 5a2 2 0 0 1 2-2z"/></svg>',
+  cal: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  card: '<svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>',
+  msg: '<svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4z"/></svg>',
+  user: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>',
+  bell: '<svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4"/></svg>',
+  globe: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>',
+  side: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>',
+};
+const LOGO = '<span class="logo"><svg width="34" height="34" viewBox="0 0 34 34"><rect x="12" y="2" width="10" height="30" rx="3" fill="#00a028"/><rect x="2" y="8" width="30" height="5" rx="2.5" fill="#00a028"/><rect x="2" y="15" width="30" height="5" rx="2.5" fill="#00a028"/><rect x="2" y="22" width="30" height="5" rx="2.5" fill="#00a028"/><rect x="15" y="9" width="4" height="17" rx="1" fill="#fff"/></svg>optom</span>';
+const YG = '<span class="yglogo">Yandex <i>Go</i></span>';
+const FARGO = '<span style="font-weight:800;font-style:italic;letter-spacing:-.5px"><span style="color:#e3262e">◤</span> FARGO</span>';
+
+function sellerShell(active, crumbs, content) {
+  const nav = (k, ic, t) => `<div class="nav ${active === k ? "on" : ""}">${ICON[ic]}${t}</div>`;
+  return `<div class="shell"><aside class="side">${LOGO}
+    <div class="grp">Основное</div>${nav("an", "chart", "Аналитика")}${nav("pr", "box", "Товары")}${nav("or", "list", "Заказы")}${nav("ch", "chat", "Чаты")}
+    <div class="grp">Организация</div>${nav("em", "users", "Сотрудники")}${nav("br", "store", "Филиалы")}
+    <div class="grp">Система</div>${nav("se", "gear", "Настройки")}${nav("ta", "spark", "Тарифы")}
+    <div class="me"><span class="ava">НА</span><div><b style="font-weight:600">Николаев А. Д.</b><small>● Подтвержден</small></div></div></aside>
+    <main class="main"><div class="top"><span class="iconbtn">${ICON.side.replace("<svg", '<svg width="18" height="18" fill="none" stroke="#38383b"')}</span><div class="crumbs">${crumbs}</div><span class="sp"></span><span class="iconbtn">${ICON.bell.replace("<svg", '<svg width="18" height="18" fill="none" stroke="#38383b"')}</span><span class="lang">Русский ▾</span></div>${content}</main></div>`;
+}
+
+// ---- harness ----
+const H = { scen: [], cur: null, notesOn: false };
+function harness(meta, scenarios) {
+  H.scen = scenarios;
+  const bar = document.createElement("div"); bar.className = "pbar";
+  bar.innerHTML = `<b>${esc(meta.title)}</b><span class="tag">${esc(meta.stories)}</span><span class="tag">v${meta.version}</span>
+    <span>Scenario:</span><select id="scen">${scenarios.map((s, i) => `<option value="${i}">${i + 1}. ${esc(s.label)}</option>`).join("")}</select>
+    <button id="reset" title="Reset the current scenario">↺ Reset</button><span class="sp"></span>
+    <span style="color:#9aa1ab">Prototype · RU UI · notes in English</span>
+    <button id="ntoggle">Notes for this state</button>`;
+  document.body.prepend(bar);
+  const notes = document.createElement("div"); notes.className = "notes"; notes.id = "notes"; document.body.append(notes);
+  $("#scen").onchange = e => go(+e.target.value);
+  $("#reset").onclick = () => go(+$("#scen").value);
+  $("#ntoggle").onclick = () => { H.notesOn = !H.notesOn; notes.classList.toggle("show", H.notesOn); $("#ntoggle").classList.toggle("on", H.notesOn); };
+  const q = new URLSearchParams(location.hash.slice(1)), qs = new URLSearchParams(location.search); go(+(q.get("s") || qs.get("s") || 0));
+}
+function go(i) {
+  const s = H.scen[i]; if (!s) return; H.cur = s; $("#scen").value = i; history.replaceState(null, "", "#s=" + i);
+  s.apply(); setNotes(s.notes, s.src);
+}
+function setNotes(list, src) {
+  $("#notes").innerHTML = `<h4>What this state shows</h4><ul>${(list || []).map(n => `<li>${n}</li>`).join("")}</ul>${src ? `<div class="src">${src}</div>` : ""}`;
+}
+let toastT;
+function toast(t) { let el = $(".toast"); if (!el) { el = document.createElement("div"); el.className = "toast"; document.body.append(el); } el.textContent = t; el.style.display = "block"; clearTimeout(toastT); toastT = setTimeout(() => el.style.display = "none", 3200); }
+function modal(html) { closeModal(); const bg = document.createElement("div"); bg.className = "modal-bg"; bg.id = "mbg"; bg.innerHTML = `<div class="modal">${html}</div>`; document.body.append(bg); return bg; }
+function closeModal() { const m = $("#mbg"); if (m) m.remove(); }
+
+// When embedded in a narrow frame (e.g. Confluence iFrame), scale the desktop layout down to fit
+(function fitFrame() {
+  if (window === window.top) return;
+  const apply = () => { const w = document.documentElement.clientWidth; document.documentElement.style.zoom = w < 1280 ? (w / 1280).toFixed(3) : ""; };
+  apply(); window.addEventListener("resize", apply);
+})();
+
+
+// Pickup prototype helpers: fake QR code, data
+function qrSvg(seed, px) {
+  const n = 25; let h = 0; for (const c of String(seed)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const rnd = () => { h ^= h << 13; h >>>= 0; h ^= h >> 17; h ^= h << 5; h >>>= 0; return h / 4294967296; };
+  const fin = (x, y) => [[x, y], [n - 7 - 0, y], [x, n - 7]].some(([a, b]) => false);
+  let r = "";
+  const inF = (x, y) => (x < 8 && y < 8) || (x > n - 9 && y < 8) || (x < 8 && y > n - 9);
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { if (inF(x, y)) continue; if (rnd() > 0.5) r += `<rect x="${x}" y="${y}" width="1" height="1"/>`; }
+  const finder = (x, y) => `<rect x="${x}" y="${y}" width="7" height="7"/><rect x="${x + 1}" y="${y + 1}" width="5" height="5" fill="#fff"/><rect x="${x + 2}" y="${y + 2}" width="3" height="3"/>`;
+  return `<svg class="qr" width="${px}" height="${px}" viewBox="-1 -1 ${n + 2} ${n + 2}" shape-rendering="crispEdges"><g fill="#111">${r}${finder(0, 0)}${finder(n - 7, 0)}${finder(0, n - 7)}</g></svg>`;
+}
+const PINSVG = '<svg viewBox="0 0 24 24"><path d="M12 22s7-7 7-12a7 7 0 1 0-14 0c0 5 7 12 7 12z"/><circle cx="12" cy="10" r="2.6" fill="#fff"/></svg>';
+const DAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+const STD_HOURS = [["09:00", "18:00"], ["09:00", "18:00"], ["09:00", "18:00"], ["09:00", "18:00"], ["09:00", "18:00"], ["10:00", "15:00"], null];
+function hoursLine(h) { // M-PU5 style: group equal consecutive days
+  const out = []; let i = 0;
+  while (i < 7) { let j = i; while (j + 1 < 7 && JSON.stringify(h[j + 1]) === JSON.stringify(h[i])) j++;
+    const d = i === j ? DAYS[i] : DAYS[i] + "–" + DAYS[j]; out.push(h[i] ? `${d} ${h[i][0]}–${h[i][1]}` : `${d} выходной`); i = j + 1; }
+  return out.join(", ");
+}
+const TIMES = Array.from({ length: 48 }, (_, i) => String(Math.floor(i / 2)).padStart(2, "0") + ":" + (i % 2 ? "30" : "00"));
+
+// P-PU3 Seller: pickup order, ready for pickup and handover (website and app)
+const ST = { 16: ["Новый", "g"], 25: ["В обработке", "b"], 32: ["Готов к выдаче", "v"], 35: ["Выдан", "n"], 48: ["Не забран", "r"], 45: ["Отменён продавцом", "r"], 41: ["Отменён покупателем", "r"] };
+const ORD = "2610250001", CODE = "482915";
+const ITEMS = [["Холодильник Artel HD 455", 2], ["Морозильный ларь Artel 300", 1]];
+let S = {};
+function reset(o) {
+  closeModal();
+  S = Object.assign({ st: 25, view: "order", mobile: false, tries: 0, lockMin: 0, hist: [], filt: "pu", conflict: false, scan: false, method: "", refusal: "" }, o || {});
+  render(); if (S.open) S.open();
+}
+const log = t => S.hist.push([t, "сегодня в " + new Date().toTimeString().slice(0, 5), "Николаев А. Д. · продавец"]);
+function actions() {
+  const b = (id, cls, t) => `<button class="btn ${cls}" id="${id}">${t}</button>`;
+  if (S.st === 16) return `<h3>Подтвердите заказ</h3><p class="sub">Самовывоз: подтверждение ничего не бронирует у служб доставки. У вас есть 24 часа.</p><div class="row mt12">${b("reject", "dan", "Отклонить")}${b("confirm", "pri", "Подтвердить")}</div>`;
+  if (S.st === 25) return `<h3>Соберите заказ в филиале</h3><p class="sub">Когда заказ упакован и лежит в пункте выдачи, нажмите «Готов к выдаче». Покупатель получит QR-код и код выдачи.</p><div class="row mt12">${b("cancel", "dan", "Отменить заказ")}${b("ready", "pri", "Готов к выдаче")}</div>`;
+  if (S.st === 32) return `<h3>Ждём покупателя</h3><p class="sub">Хранение до 16.10.2026, 23:59. Попросите QR-код или код выдачи.</p><div class="row mt12">${S.mobile ? b("scanb", "pri", "Сканировать QR") : ""}${b("bynum", S.mobile ? "out" : "pri", "Выдать по номеру заказа")}</div><button class="btn link sm mt8" id="nocode">У покупателя нет кода</button><p class="hint mt8">Отменить готовый заказ может только поддержка.</p>`;
+  if (S.st === 35) return `<div class="alert s"><span class="ic">✓</span><div><b>Заказ №${ORD} выдан</b>${S.method === "NoCode" ? "Выдан без кода. Покупатель получил уведомление." : "Выдан по " + (S.method === "Qr" ? "QR-коду" : "номеру заказа и коду") + "."}</div></div>`;
+  if (S.st === 48) return `<div class="alert e"><span class="ic">!</span><div><b>${S.refusal ? "Покупатель отказался: " + S.refusal : "Срок хранения истёк"}</b>Заказ отменён. Товары возвращены на остаток филиала.</div></div>`;
+  if (S.st === 45) return `<div class="alert e"><span class="ic">!</span><div><b>Заказ отменён</b>Покупатель получил уведомление. Товары вернулись на остаток филиала.</div></div>`;
+  if (S.st === 41) return `<div class="alert e"><span class="ic">!</span><div><b>Покупатель отменил заказ</b>Не отправляйте и не передавайте товары.</div></div>`;
+  return "";
+}
+function orderBody() {
+  const hist = S.hist.length ? `<div class="timeline mt12" style="border-top:1px solid var(--line);padding-top:8px">${S.hist.map(h => `<div class="it"><span class="d">•</span><div>${h[0]}<small>${h[1]} · ${h[2]}</small></div></div>`).join("")}</div>` : "";
+  return `<div class="card">${actions()}</div><div class="card"><h3>Получение</h3>
+      <div class="kv">${ICON.store}<div><span class="k">Способ:</span> Самовывоз · <b>Филиал Чиланзар</b></div></div>
+      ${S.st === 32 ? `<div class="kv">${ICON.cal}<div><span class="k">Хранение до</span> 16.10.2026, 23:59</div></div>` : ""}
+      <div class="kv">${ICON.user}<div><span class="k">Покупатель:</span> Азизбек Хамидов · <span class="k">Получатель:</span> Шерзод Каримов</div></div>${hist}</div>
+    <div class="card"><h3>Товары</h3>${ITEMS.map(i => `<div class="prod mt8"><span class="thumb"></span>${i[0]} · ${i[1]} шт.</div>`).join("")}</div>`;
+}
+function listView() {
+  const rows = [[ORD, "Филиал Чиланзар", 32, "до 16.10.2026"], ["2610240417", "Филиал Чиланзар", 32, "до 15.10.2026"], ["2610240388", "Склад Сергели", 25, ""], ["2610230101", "Филиал Чиланзар", 16, ""]];
+  const f = rows.filter(r => S.filt !== "ready" || r[2] === 32);
+  return `<div class="h1">Заказы</div><div class="row" style="margin-bottom:12px"><span class="chip on">Способ: Самовывоз ✕</span><select class="inp" id="sf" style="max-width:240px"><option value="">Все статусы</option><option value="ready" ${S.filt === "ready" ? "selected" : ""}>Готов к выдаче</option></select></div>
+   <div class="card"><table class="t"><thead><tr><th>Заказ</th><th>Получение</th><th>Статус</th><th>Хранение</th></tr></thead><tbody>${f.map(r => `<tr><td><b>№${r[0]}</b></td><td>Самовывоз · ${r[1]}</td><td><span class="pill ${ST[r[2]][1]}">${ST[r[2]][0]}</span></td><td class="small">${r[3] || "—"}</td></tr>`).join("")}</tbody></table></div>`;
+}
+function web() {
+  const os = ST[S.st];
+  if (S.view === "list") return sellerShell("or", "<b>Заказы</b>", listView());
+  return sellerShell("or", `Заказы <span>›</span> <b>№${ORD}</b>`, `<div class="h1">Заказ №${ORD} <span class="pill ${os[1]}">${os[0]}</span></div><div class="og"><div>${orderBody()}</div>
+    <div class="card"><h3>Выдача заказа</h3><p class="sub">На сайте: введите номер заказа и код выдачи, или отсканируйте QR ручным сканером в поле «Номер заказа».</p><button class="btn out mt8" id="bynum2">Выдать по номеру заказа</button></div></div>`);
+}
+function app() {
+  const os = ST[S.st];
+  const body = S.scan ? `<div class="scan"><div class="lbl">Наведите камеру на QR-код покупателя</div><div class="vf"></div></div>
+      <div class="demo-acts"><button data-q="ok">демо: QR заказа №${ORD}</button><button data-q="other">демо: QR заказа другого продавца</button><button data-q="foreign">демо: чужой QR (не Optom)</button><button data-q="25">демо: QR заказа в обработке</button><button data-q="nocam">демо: нет камеры / интернета</button></div><button class="btn out mt8" id="scclose" style="width:100%">Закрыть</button>`
+    : `<span class="pill ${os[1]}">${os[0]}</span><div class="mt8">${orderBody()}</div>`;
+  return `<div class="phonewrap"><div class="phone"><div class="sb"><span>9:41</span><span>▮▮▮ ◔</span></div><div class="ah"><span>‹</span><b>${S.scan ? "Сканировать QR" : "Заказ №" + ORD}</b></div><div class="pc" style="padding-bottom:80px">${body}</div>
+    <div class="tabbar"><span>Главная</span><span class="on">Заказы</span><span>Товары</span><span>Чаты</span><span>Ещё</span></div></div></div>`;
+}
+function render() { $("#app").innerHTML = S.mobile ? app() : web(); bind(); }
+function setSt(n, t, msg) { if (S.conflict) { closeModal(); S.conflict = false; S.st = 41; render(); return toast("Статус заказа изменился. Страница обновлена."); } S.st = n; log(t); closeModal(); render(); if (msg) toast(msg); }
+function bind() {
+  const on = (id, f) => { const e = $("#" + id); if (e) e.onclick = f; };
+  on("confirm", () => setSt(25, "Заказ подтверждён (16 → 25)", "Заказ подтверждён"));
+  on("reject", () => setSt(45, "Заказ отклонён продавцом (16 → 45)", "Заказ отклонён"));
+  on("cancel", cancelDialog); on("ready", readyDialog);
+  on("bynum", numDialog); on("bynum2", numDialog); on("nocode", noCodeDialog);
+  on("scanb", () => { S.scan = true; render(); }); on("scclose", () => { S.scan = false; render(); });
+  document.querySelectorAll("[data-q]").forEach(x => x.onclick = () => {
+    const q = x.dataset.q; if (q === "ok") { S.scan = false; render(); return summary("Qr"); }
+    toast({ other: "Заказ не найден среди ваших заказов.", foreign: "Этот QR-код не относится к заказу Optom.", 25: "Этот заказ ещё не готов к выдаче.", nocam: "Для сканирования нужны камера и интернет. Выдайте заказ по номеру." }[q]);
+  });
+  const sf = $("#sf"); if (sf) sf.onchange = () => { S.filt = sf.value; render(); };
+}
+function readyDialog() {
+  const m = modal(`<h3>Готов к выдаче</h3><p>Заказ упакован и находится в пункте выдачи? Покупателю придёт сообщение забрать его в течение 3 дней.</p><div class="acts"><button class="btn out" id="no">Назад</button><button class="btn pri" id="yes">Подтвердить</button></div>`);
+  $("#no", m).onclick = closeModal;
+  $("#yes", m).onclick = () => setSt(32, "Готов к выдаче (25 → 32). Хранение до 16.10.2026 23:59. Покупателю отправлены DLV-04 и SMS", "Покупатель уведомлён.");
+}
+function cancelDialog() {
+  const m = modal(`<h3>Отменить заказ</h3><div class="reasons">${["Нет в наличии", "Не могу подготовить заказ", "Другое"].map((r, i) => `<label data-r="${i}"><span class="radio"></span>${r}</label>`).join("")}</div><textarea class="inp mt8" id="cc" rows="2" placeholder="Комментарий (обязателен для «Другое», 10–300 символов)"></textarea>
+    <div class="acts"><button class="btn out" id="no">Назад</button><button class="btn danfill" id="yes" disabled>Отменить заказ</button></div>`);
+  let r = -1; m.querySelectorAll("[data-r]").forEach(x => x.onclick = () => { r = +x.dataset.r; m.querySelectorAll("[data-r]").forEach(y => y.classList.toggle("on", y === x)); chk(); });
+  const chk = () => { const c = $("#cc", m).value.trim().length; $("#yes", m).disabled = r < 0 || (r === 2 && (c < 10 || c > 300)); };
+  $("#cc", m).oninput = chk; $("#no", m).onclick = closeModal;
+  $("#yes", m).onclick = () => setSt(45, "Отменён продавцом (25 → 45), причина указана", "Заказ отменён");
+}
+function attempt(code) {
+  if (S.lockMin) return `Слишком много неверных кодов. Повторите через ${S.lockMin} мин.`;
+  if (code === CODE) return "";
+  S.tries++; if (S.tries >= 5) { S.lockMin = 15; return "Слишком много неверных кодов. Повторите через 15 мин."; }
+  return `Неверный код. Осталось попыток: ${5 - S.tries}.`;
+}
+function statusErr() {
+  if (S.st === 16 || S.st === 25) return "Этот заказ ещё не готов к выдаче.";
+  if (S.st === 35) return "Этот заказ уже выдан.";
+  if ([41, 45, 46, 48].includes(S.st)) return "Этот заказ отменён. Не выдавайте его.";
+  if (S.expired) return "Срок хранения истёк. Не выдавайте заказ.";
+  return "";
+}
+function numDialog() {
+  const m = modal(`<h3>Выдать по номеру заказа</h3><div class="field"><label>Номер заказа</label><input class="inp" id="on" value="${ORD}" placeholder="Номер заказа или текст QR со сканера"></div>
+    <div class="field"><label>Код выдачи</label><input class="inp" id="oc" maxlength="7" placeholder="6 цифр" inputmode="numeric"></div><div id="er"></div>
+    <div class="acts"><button class="btn link" id="nc">У покупателя нет кода</button><span class="sp" style="flex:1"></span><button class="btn out" id="no">Закрыть</button><button class="btn pri" id="go">Проверить</button></div>
+    <div class="demo-acts"><button id="dok">демо: верный код ${CODE}</button><button id="dbad">демо: неверный код</button><button id="dother">демо: номер чужого заказа</button></div>`);
+  const err = t => { $("#er", m).innerHTML = t ? `<div class="alert e"><span class="ic">!</span><div>${t}</div></div>` : ""; };
+  const run = () => { const n = $("#on", m).value.trim(); if (n !== ORD) return err("Заказ не найден среди ваших заказов."); const se = statusErr(); if (se) return err(se);
+    const e = attempt($("#oc", m).value.replace(/\s/g, "")); if (e) return err(e); closeModal(); summary("Manual"); };
+  $("#go", m).onclick = run; $("#no", m).onclick = closeModal; $("#nc", m).onclick = noCodeDialog;
+  $("#dok", m).onclick = () => { $("#oc", m).value = CODE; run(); }; $("#dbad", m).onclick = () => { $("#oc", m).value = "111111"; run(); };
+  $("#dother", m).onclick = () => { $("#on", m).value = "2610119999"; run(); };
+  if (S.lockMin) err(`Слишком много неверных кодов. Повторите через ${S.lockMin} мин.`);
+}
+function noCodeDialog() {
+  const m = modal(`<h3>У покупателя нет кода</h3><p class="sub">Выдача без кода фиксируется, покупатель получит уведомление.</p><div class="field"><label>Номер заказа</label><input class="inp" id="on" value="${ORD}"></div>
+    <div class="field"><label>Последние 4 цифры телефона получателя</label><input class="inp" id="d4" maxlength="4" placeholder="4567"></div><div class="field"><label>Комментарий <span class="counter" id="cn">0/300</span></label><textarea class="inp" id="cm" rows="2" placeholder="Почему нет кода и как вы убедились, что это получатель (10–300 символов)"></textarea></div><div id="er"></div>
+    <div class="acts"><button class="btn out" id="no">Закрыть</button><button class="btn pri" id="go" disabled>Проверить</button></div><div class="demo-acts"><button id="dok">демо: 4567 и комментарий</button></div>`);
+  const chk = () => { const c = $("#cm", m).value.trim().length; $("#cn", m).textContent = c + "/300"; $("#go", m).disabled = $("#d4", m).value.length !== 4 || c < 10 || c > 300; };
+  $("#d4", m).oninput = chk; $("#cm", m).oninput = chk; $("#no", m).onclick = closeModal;
+  $("#go", m).onclick = () => { const se = statusErr(); const e = se || (S.lockMin ? `Слишком много неверных кодов. Повторите через ${S.lockMin} мин.` : $("#d4", m).value === "4567" ? "" : attempt("x"));
+    if (e) { $("#er", m).innerHTML = `<div class="alert e"><span class="ic">!</span><div>${e}</div></div>`; return; } closeModal(); summary("NoCode"); };
+  $("#dok", m).onclick = () => { $("#d4", m).value = "4567"; $("#cm", m).value = "Телефон покупателя разряжен, получатель показал паспорт"; chk(); };
+}
+function summary(method) {
+  const m = modal(`<h3>Заказ №${ORD}</h3><div class="sumbox">${ITEMS.map(i => `<div>${i[0]} · <b>${i[1]} шт.</b></div>`).join("")}<div class="mt8"><span class="k">Получатель:</span> Шерзод Каримов · +998 •• ••• •• 67</div></div>
+    <p class="hint mt8">Проверьте товар вместе с покупателем перед выдачей.</p>${method === "NoCode" ? '<div class="alert w"><span class="ic">!</span><div>Выдача без кода. Покупатель получит уведомление DLV-10.</div></div>' : ""}
+    <div class="acts"><button class="btn dan" id="ref">Покупатель отказался</button><span style="flex:1"></span><button class="btn out" id="no">Закрыть</button><button class="btn pri" id="go">Выдать</button></div>`);
+  $("#no", m).onclick = closeModal;
+  $("#go", m).onclick = () => { S.method = method; setSt(35, `Выдан (32 → 35), способ: ${{ Qr: "QR-код", Manual: "номер заказа + код", NoCode: "без кода" }[method]}`, `Заказ №${ORD} выдан.`); };
+  $("#ref", m).onclick = refuseDialog;
+}
+function refuseDialog() {
+  const R = ["Товар повреждён", "Не тот товар или количество", "Передумал", "Другое"];
+  const m = modal(`<h3>Покупатель отказался</h3><p class="sub">Отказ от всего заказа. Заказ будет отменён, товары вернутся на остаток.</p><div class="reasons">${R.map((r, i) => `<label data-r="${i}"><span class="radio"></span>${r}</label>`).join("")}</div><textarea class="inp mt8" id="cc" rows="2" placeholder="Комментарий (обязателен для «Другое»)"></textarea>
+    <div class="acts"><button class="btn out" id="no">Назад</button><button class="btn danfill" id="yes" disabled>Подтвердить отказ</button></div>`);
+  let r = -1; const chk = () => { const c = $("#cc", m).value.trim().length; $("#yes", m).disabled = r < 0 || (r === 3 && (c < 10 || c > 300)); };
+  m.querySelectorAll("[data-r]").forEach(x => x.onclick = () => { r = +x.dataset.r; m.querySelectorAll("[data-r]").forEach(y => y.classList.toggle("on", y === x)); chk(); });
+  $("#cc", m).oninput = chk; $("#no", m).onclick = closeModal;
+  $("#yes", m).onclick = () => { S.refusal = R[r]; setSt(48, `Покупатель отказался (32 → 48, RefusedAtPickup): ${R[r]}`, "Отказ зафиксирован. Заказ отменён."); };
+}
+harness({ title: "P-PU3 Seller: pickup order and handover", stories: "US-SF-5.3-01 · US-SF-5.3-02", version: "1.0" }, [
+  { label: "Orders list: pickup filter", apply: () => reset({ view: "list" }), notes: ["Pickup orders show «Самовывоз · branch» instead of the address; filter by method and by «Готов к выдаче» (US-SF-5.3-01 AC1)."], src: "Pickup PRD PU-S8" },
+  { label: "Order page 16: confirm or reject", apply: () => reset({ st: 16 }), notes: ["Same actions as other methods; «Подтвердить» books nothing (AC2, AC3)."], src: "PRD PU-S9" },
+  { label: "Order page 25: Ready for pickup", apply: () => reset({ st: 25 }), notes: ["«Готов к выдаче» (M-PU16) only in 25; «Отменить заказ» with a reason (AC4, AC5)."], src: "PRD PU-S10, PU-S11 · not designed (DR-PU5)" },
+  { label: "Ready for pickup dialog", apply: () => reset({ st: 25, open: readyDialog }), notes: ["M-PU17 with «Подтвердить» / «Назад». Confirm: 32, deadline 16.10.2026 23:59 (example S1), toast M-PU18, DLV-04 and SMS to the buyer (AC6, AC7)."], src: "PRD M-PU17, M-PU18, 4.3" },
+  { label: "Order page 32: waiting for the buyer", apply: () => reset({ st: 32 }), notes: ["«Хранение до 16.10.2026, 23:59» (new text T4); no «Отменить заказ» (AC9, AC10).", "Website: «Выдать по номеру заказа» and «У покупателя нет кода»; no camera on the website (OQ-PU21)."], src: "PRD PU-S16, M-PU28" },
+  { label: "App: scan QR → summary", apply: () => reset({ st: 32, mobile: true, scan: true }), notes: ["Seller app: «Сканировать QR» opens the camera. Use the demo buttons for a valid QR (summary), another seller's order (M-PU20), a non-Optom QR (M-PU20b), an order in 25 (M-PU21a), no camera or internet (T7) (US-SF-5.3-02 AC1, AC2, AC5, AC9, AC11, AC16)."], src: "PRD PU-S12, 4.4" },
+  { label: "Website: hand over by order number", apply: () => reset({ st: 32, open: numDialog }), notes: ["Order number + 6-digit code; the number field also takes the QR text from a hand scanner (AC6). Try the demo buttons."], src: "PRD PU-S13, M-PU19" },
+  { label: "Wrong code", apply: () => reset({ st: 32, tries: 2, open: () => { numDialog(); $("#dbad").click(); } }), notes: ["Third wrong code: «Неверный код. Осталось попыток: 2.» (M-PU22) (AC7, H3). Two more wrong codes lock manual entry."], src: "PRD PU-P5, M-PU22" },
+  { label: "Locked after 5 wrong codes", apply: () => reset({ st: 32, tries: 5, lockMin: 12, open: numDialog }), notes: ["M-PU23 with the minutes left; the no-code path is locked too; scanning the valid QR still works (AC8, H4)."], src: "PRD M-PU23" },
+  { label: "Order cannot be handed over", apply: () => reset({ st: 48, open: numDialog }), notes: ["The order is already cancelled (48): M-PU21c «Этот заказ отменён. Не выдавайте его.» (AC9, H10). In 25 it would be M-PU21a; in 35 M-PU21b; past the deadline M-PU21d."], src: "PRD M-PU21a – d" },
+  { label: "The buyer has no code", apply: () => reset({ st: 32, open: noCodeDialog }), notes: ["Order number, last 4 digits of the recipient's phone (4567) and a comment of 10–300 characters; then the summary; «Выдать» logs NoCode and sends DLV-10 to the buyer (AC12, H7)."], src: "PRD PU-S14, M-PU26" },
+  { label: "Buyer refused", apply: () => reset({ st: 32, open: () => { summary("Manual"); refuseDialog(); } }), notes: ["From the summary: reason (M-PU27); «Другое» needs a comment. Confirm: 48 RefusedAtPickup, stock back, refusal texts to both sides (AC14, H8)."], src: "PRD PU-S15" },
+  { label: "Handed over", apply: () => reset({ st: 32, open: () => summary("Qr") }), notes: ["Summary with items, recipient and masked phone (M-PU24). «Выдать»: 35, toast M-PU25, DLV-08; the QR and code stop working (AC2, AC3, AC18)."], src: "PRD 4.4 step 5" },
+  { label: "Cancel in 25 with a reason", apply: () => reset({ st: 25, open: cancelDialog }), notes: ["Reasons: «Нет в наличии», «Не могу подготовить заказ», «Другое» + comment (new text T3) (US-SF-5.3-01 AC4)."], src: "PRD PU-S10" },
+]);
+
+</script></body></html>
