@@ -451,7 +451,7 @@ const ORDERS = [
   { o: "2610240417", s: "ООО «Холод Сервис»", b: "Филиал Чиланзар", st: 35, ready: "13.10.2026 15:05", dl: "15.10.2026 23:59", ho: ["14.10.2026 10:12", "Николаев А. Д.", "Без кода", "Телефон покупателя разряжен, получатель показал паспорт"] },
   { o: "2610230555", s: "ИП Каримов", b: "Склад Сергели", st: 48, ready: "10.10.2026 12:00", dl: "12.10.2026 23:59", nc: true },
   { o: "2610230388", s: "ИП Каримов", b: "Склад Сергели", st: 25 }];
-const STN = { 16: ["Новый", "g"], 25: ["В обработке", "b"], 32: ["Готов к выдаче", "v"], 35: ["Выдан", "n"], 48: ["Не забран", "r"], 46: ["Отменён администратором", "r"] };
+const STN = { 16: ["Новый", "g"], 25: ["В обработке", "b"], 32: ["Готов к выдаче", "v"], 35: ["Выдан", "n"], 48: ["Не забран / Отказ", "r"], 46: ["Отменён администратором", "r"] };
 const LOG = {
   "2610240417": [["14.10.2026 10:12", "Николаев А. Д.", "Без кода", "Успешно", "Android · Seller app", "185.139.1.20"], ["14.10.2026 10:10", "Николаев А. Д.", "Номер + код", "Неверный код", "Android · Seller app", "185.139.1.20"], ["14.10.2026 10:09", "Николаев А. Д.", "Номер + код", "Неверный код", "Android · Seller app", "185.139.1.20"]],
   "2610250001": [["15.10.2026 09:31", "Николаев А. Д.", "Номер + код", "Заблокировано", "Chrome · Windows", "185.139.1.20"], ...Array.from({ length: 5 }, (_, i) => [`15.10.2026 09:${String(29 - i * 2).padStart(2, "0")}`, "Николаев А. Д.", "Номер + код", "Неверный код", "Chrome · Windows", "185.139.1.20"])]
@@ -466,7 +466,7 @@ function adminShell(content) {
 function list() {
   const rows = S.rows.filter(r => !S.st || r.st === +S.st);
   return adminShell(`<div class="apanel"><h1>Заказы</h1><div class="row" style="margin-bottom:14px"><select class="inp" style="max-width:240px"><option>Способ доставки: Самовывоз</option><option>Все способы</option></select>
-    <select class="inp" id="stf" style="max-width:240px"><option value="">Все статусы</option><option value="32" ${S.st == 32 ? "selected" : ""}>Готов к выдаче (32)</option><option value="48" ${S.st == 48 ? "selected" : ""}>Не забран (48)</option></select></div>
+    <select class="inp" id="stf" style="max-width:240px"><option value="">Все статусы</option><option value="32" ${S.st == 32 ? "selected" : ""}>Готов к выдаче (32)</option><option value="48" ${S.st == 48 ? "selected" : ""}>Не забран / Отказ (48)</option></select></div>
     <table class="t"><thead><tr><th>Заказ</th><th>Продавец</th><th>Доставка</th><th>Статус</th><th>Хранение до</th><th></th></tr></thead><tbody>${rows.map(r => `<tr><td><b>№${r.o}</b></td><td>${r.s}</td><td>Самовывоз · ${r.b}</td><td><span class="pill ${STN[r.st][1]}">${STN[r.st][0]}</span>${[46, 48].includes(r.st) ? ' <span class="pill a">Ожидает возврата</span>' : ""}</td><td class="small">${r.dl || "—"}</td><td><span class="go" data-o="${S.rows.indexOf(r)}">→</span></td></tr>`).join("")}</tbody></table></div>`);
 }
 function orderView() {
@@ -501,12 +501,12 @@ function bind() {
   const ac = $("#acancel"); if (ac) ac.onclick = cancelDlg;
 }
 harness({ title: "P-PU4 Admin: pickup orders and handover log", stories: "US-AF-2.1-02", version: "1.0" }, [
-  { label: "Orders list: pickup filter", apply: () => reset(), notes: ["Filter by «Самовывоз» and by statuses 32 / 48 (US-AF-2.1-02 AC1). Cancelled pickup orders carry «Ожидает возврата» ⚑ OQ-PU13."], src: "Pickup PRD PU-A3" },
+  { label: "Orders list: pickup filter", apply: () => reset(), notes: ["Filter by «Самовывоз» and by statuses 32 / 48 (US-AF-2.1-02 AC1). Cancelled pickup orders carry «Ожидает возврата» ⚑ OQ-PU13 (AC10)."], src: "Pickup PRD PU-A3" },
   { label: "Order page: ready for pickup", apply: () => reset({ view: "order", open: 0 }), notes: ["Delivery block: method (read-only, DR-PU7), branch snapshot, «Готов к выдаче», «Хранение до» (AC2, AC7). The code is never shown (AC5).", "«Отменить заказ» is available in 16, 25 and 32 (AC8)."], src: "PRD PU-A1" },
   { label: "Order page: handed over without code", apply: () => reset({ view: "order", open: 1 }), notes: ["Handover time, seller user, method «Без кода» and the seller's comment (AC3). The log shows two wrong codes before the no-code handover (AC6)."], src: "PRD PU-A1, PU-A2" },
   { label: "Handover log with a lock", apply: () => reset({ view: "order", open: 0, locked: true }), notes: ["Five wrong codes within 15 minutes: «Ручной ввод заблокирован до 09:46» above the log (AC6, new text T8). There is no unlock action; the lock ends by itself."], src: "PRD PU-P5" },
   { label: "Cancel in 32", apply: () => reset({ view: "order", open: 0, after: cancelDlg }), notes: ["Existing admin cancel with a reason → 46; QR and code stop working; ORD-09 and SOR-05; refund pending (AC8, E-PU18)."], src: "PRD PU-A4" },
-  { label: "Seller card: pickup branches", apply: () => reset({ view: "seller" }), notes: ["Each branch with the pickup switch, working hours and «Как нас найти», read-only (AC11)."], src: "PRD PU-A5" },
+  { label: "Seller card: pickup branches", apply: () => reset({ view: "seller" }), notes: ["Each branch with the pickup switch, working hours and «Как нас найти», read-only (AC12)."], src: "PRD PU-A5" },
 ]);
 
 </script></body></html>
